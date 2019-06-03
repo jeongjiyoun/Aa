@@ -49,16 +49,29 @@ public class Croll {
 	public String findProject(String url) {
 		String tempurl = urlMake(url, "?tab=repositories");
 		//tempurl을 쓰는 이유는 해당 프로젝트를 불러오는 url은 단 한번만 사용되기 때문.
-		Document doc = connectJsoup(tempurl);
-		Elements element = doc.select("div#user-repositories-list");
+		Elements element = getElement(tempurl, "div#user-repositories-list");
 
-		for (Element el : element.select("li").select("h3")) { //프로젝트 제목들을 출력
-			System.out.println(el.text());
-		}
+		showPrint(element,"li h3");
 		
 		//여기서는 임의로 이동하는 경로를 Scanner로 입력을 받는다.
 		url = urlMake(url, input.next());
 		return url;
+	}
+	
+	//elements 불러오기
+	public Elements getElement(String url, String condition) {
+		Document doc = connectJsoup(url);
+		Elements element = doc.select("div#user-repositories-list");
+		return element;
+	}
+	
+	
+	//조건을 받아 출력하기.
+	//향후 이 부분은 UI로 보내기로 변경한다
+	private void showPrint(Elements element, String condition) {
+		for (Element el : element.select("condition")) {
+			System.out.println(el.text());
+		}
 	}
 	
 	public String folderFind(String url) {
