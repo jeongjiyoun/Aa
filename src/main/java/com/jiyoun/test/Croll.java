@@ -15,7 +15,6 @@ public class Croll {
 	private static Scanner input = new Scanner(System.in);
 	private final String gitUrl = "https://github.com";	
 	private boolean isOff = false;
-	
 	public void startCrolling(String userId) {
 		
 		String url = urlMake(gitUrl, userId);
@@ -29,20 +28,6 @@ public class Croll {
 		input.close();
 	}
 
-
-	//프로젝트 선택화면 불러오기
-	public String findProject(String url) {
-		String tempurl = urlMake(url, "?tab=repositories");
-		//tempurl을 쓰는 이유는 해당 프로젝트를 불러오는 url은 단 한번만 사용되기 때문.
-	
-		showPrint(getElement(tempurl, "div#user-repositories-list"),"li h3");
-		
-		//여기서는 임의로 이동하는 경로를 Scanner로 입력을 받는다.
-		url = urlMake(url, input.next());
-		return url;
-	}
-	
-	
 	//url을 만들어주는 메서드
 	private String urlMake(String url, String value) {
 		url += "/" + value;
@@ -60,32 +45,45 @@ public class Croll {
 		return doc;
 	}
 
+	//프로젝트 선택화면 불러오기
+	public String findProject(String url) {
+		String tempurl = urlMake(url, "?tab=repositories");
+		//tempurl을 쓰는 이유는 해당 프로젝트를 불러오는 url은 단 한번만 사용되기 때문.
+		Elements element = getElement(tempurl, "div#user-repositories-list");
+
+		showPrint(element,"li h3");
+		
+		//여기서는 임의로 이동하는 경로를 Scanner로 입력을 받는다.
+		url = urlMake(url, input.next());
+		return url;
+	}
+	
 	//elements 불러오기
 	public Elements getElement(String url, String condition) {
 		Document doc = connectJsoup(url);
-		Elements element = doc.select(condition);
+		Elements element = doc.select("div#user-repositories-list");
 		return element;
 	}
+	
 	
 	//조건을 받아 출력하기.
 	//향후 이 부분은 UI로 보내기로 변경한다
 	private void showPrint(Elements element, String condition) {
-		for (Element el : element.select(condition)) {
+		for (Element el : element.select("condition")) {
 			System.out.println(el.text());
 		}
 	}
+	
+	public String folderFind(String url) {
+		Document doc = connectJsoup(url);
+		Elements element = doc.select("table.files.js-navigation-container.js-active-navigation-container");
 
-	private void wholeTextPrint(Elements element) {
-		for (Element el : element) {
-			System.out.println(el.wholeText());
-		}
-	}
-
-	//조건을 받아 출력하기.
-	//향후 이 부분은 UI로 보내기로 변경한다
-	private void showPrintAndList(Elements element, String condition, List<CrollVo> list) {
 		int number = 1;
-		for (Element el : element.select("condition")) {
+		List<CrollVo> result = new LinkedList<CrollVo>();
+
+		System.out.println("============================================================");
+		
+		for (Element el : element.select("tr.js-navigation-item")) { 
 			boolean isDirectory = false;
 			String source = el.select("td.content").text();
 			String type = el.select("td.icon").select("svg").attr("aria-label");
@@ -95,18 +93,9 @@ public class Croll {
 			}
 			
 			System.out.println(number + "\t"+ source +"\t" + isDirectory);
-			list.add(new CrollVo(number++, source, isDirectory));
+			result.add(new CrollVo(number++, source, isDirectory));
 		}
-	}
-	
-	public String folderFind(String url) {
-		
-		Elements element = 	getElement(url, "table.files.js-navigation-container.js-active-navigation-container");
-		List<CrollVo> result = new LinkedList<CrollVo>();
-		System.out.println(element);
-		System.out.println("============================================================");
-		showPrintAndList(element, "tr.js-navigation-item", result);
-		
+
 		System.out.println("============================================================");
 		
 		int inputIndex = input.nextInt();
@@ -128,29 +117,34 @@ public class Croll {
 				folderFind(url);
 			} else {
 				String dire = url.split("https://github.com/jeongjiyoun/")[1];
-				SourceLink(dire, crollResult.getSource());
+				SourceLink(dire,"master",crollResult.getSource());
 			}
 		}
 		
 		return url;
 	}
 	
-	public void SourceLink(String directory, String FileName) {
+	public void SourceLink(String directory, String branchName, String FileName) {
 		String url = "https://raw.githubusercontent.com/";
 		url += "jeongjiyoun";
 		url += "/" + directory;
+//		url += "/" + branchName;
 		url += "/" + FileName;
 		source(url);
 	}
 	
 	private void source(String url) {
 		url = url.split("/tree/")[0] + "/" + url.split("/tree/")[1];
-
-		Elements element = getElement(url, "body");
+//		url = "https://raw.githubusercontent.com/jeongjiyoun/chieUniversity/master/java/com/university/chie/controller/AdminController.java";
+		Document doc = connectJsoup(url);
+		//pre 태그의 내용을 긁어온다
+		Elements element = doc.select("body");
 
 		System.out.println("============================================================");
 
-		wholeTextPrint(element);
+		for (Element el : element) { // 하위 뉴스 기사들을 for문 돌면서 출력
+			System.out.println(el.wholeText());
+		}
 
 		System.out.println("============================================================");
 
