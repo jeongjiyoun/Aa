@@ -29,10 +29,9 @@ public class Croll {
 
 	public void startCrolling(String userId) {
 		
-		String url = urlMake(gitUrl, userId);
-		
 		while(true) {
-			folderFind(findProject(url));
+			findProject(userId);
+//			folderFind();
 			if (isOff) {
 				break;
 			}
@@ -41,7 +40,7 @@ public class Croll {
 	}
 
 	//url�쓣 留뚮뱾�뼱二쇰뒗 硫붿꽌�뱶
-	private String urlMake(String url, String value) {
+	protected String urlMake(String url, String value) {
 		url += "/" + value;
 		return url;
 	}
@@ -49,18 +48,24 @@ public class Croll {
 	protected Elements getRepository(String userId) {
 		String tempurl = repositoryUrlMake(userId);
 		// tempurl을 쓰는 이유는 해당 프로젝트를 불러오는 url은 단 한번만 사용되기 때문.
-		Elements element = selectQuery(tempurl, "div#user-repositories-list");
-		return element;
+		return selectQuery(tempurl, "div#user-repositories-list");
 	}
 
 	//�봽濡쒖젥�듃 �꽑�깮�솕硫� 遺덈윭�삤湲�
-	public String findProject(String url) {
-		Elements element = getElement(tempurl, "div#user-repositories-list");
+	public String findProject(String userId) {
+		Elements element = getRepository(userId);
 		showPrint(element,"li h3");
 
+		String url = urlAdd(gitUrl,userId);
 		url = urlAdd(url, input.next());
 		return url;
 		
+	}
+	
+	// branch를 변경하는 경우
+	private void divertBranch() {
+		String branch = input.next();
+//		linkMap.put("branch", branch);
 	}
 
 	protected String repositoryUrlMake(String userId) {
@@ -83,7 +88,16 @@ public class Croll {
 		}
 	}
 
-	public String folderFind(String url) {
+
+	//String by select
+//	public String folderFind(String url) {
+//		Elements element = getElement(url, "table.files.js-navigation-container.js-active-navigation-container");
+//		List<CrollVo> result = showFolderList(element);
+//		url = folderCheck(result, url);
+//		return null;
+//	}	
+	
+	public List<CrollVo> folderFind(String url) {
 		Elements element = selectQuery(url,"table.files.js-navigation-container.js-active-navigation-container");
 		
 		List<CrollVo> result = new LinkedList<CrollVo>();
@@ -94,17 +108,6 @@ public class Croll {
 		for (Element el : element.select("tr.js-navigation-item")) { 
 			String source = selectFromElement(el, "td.content");
 			boolean isDirectory = isDirectory(selectType(el,"td.icon svg","aria-label"));
-
-			System.out.println(number + "\t"+ source +"\t" + isDirectory);
-
-		for (Element el : element.select("tr.js-navigation-item")) {
-			boolean isDirectory = false;
-			String source = el.select("td.content").text();
-			String type = el.select("td.icon").select("svg").attr("aria-label");
-
-			if (type.equals("directory")) {
-				isDirectory = true;
-			}
 
 			System.out.println(number + "\t" + source + "\t" + isDirectory);
 			result.add(new CrollVo(number++, source, isDirectory));
@@ -133,15 +136,6 @@ public class Croll {
 		return result;
 	}
 
-
-	//String by select
-	public String folderFind(String url) {
-		Elements element = getElement(url, "table.files.js-navigation-container.js-active-navigation-container");
-		List<CrollVo> result = showFolderList(element);
-		url = folderCheck(result, url);
-		return null;
-	}
-	
 
 	private String folderCheck(List<CrollVo> result, String url) {
 		int inputIndex = input.nextInt();
@@ -201,6 +195,15 @@ public class Croll {
 		for (Element el : element) { // �븯�쐞 �돱�뒪 湲곗궗�뱾�쓣 for臾� �룎硫댁꽌 異쒕젰
 			System.out.println(el.wholeText());
 		}
-
+	}
+	
+	private Document connectJsoup(String url) {
+		Document doc = null;
+		try {
+			doc = Jsoup.connect(url).get();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return doc;
 	}
 }
