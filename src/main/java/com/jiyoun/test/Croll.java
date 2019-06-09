@@ -11,11 +11,22 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class Croll {
-	
+
+	// 고쳐야 할 것
+	/*
+	 * 1. 폴더 상위폴더로 가기 2. 프로젝트 종류 안뜨는 거 수정.
+	 */
 	private static Scanner input = new Scanner(System.in);
-	private final String gitUrl = "https://github.com";	
+	private final String gitUrl = "https://github.com";
 	private boolean isOff = false;
-	
+
+	//elements 遺덈윭�삤湲�
+	public Elements getElement(String url, String condition) {
+		Document doc = connectJsoup(url);
+		Elements element = doc.select(condition);
+		return element;
+	}
+
 	public void startCrolling(String userId) {
 		
 		String url = urlMake(gitUrl, userId);
@@ -29,44 +40,52 @@ public class Croll {
 		input.close();
 	}
 
-
 	//url�쓣 留뚮뱾�뼱二쇰뒗 硫붿꽌�뱶
 	private String urlMake(String url, String value) {
 		url += "/" + value;
 		return url;
 	}
 
-	//�봽濡쒖젥�듃 �꽑�깮�솕硫� 遺덈윭�삤湲�
-	public String findProject(String url) {
-		String tempurl = urlMake(url, "?tab=repositories");
-		//tempurl�쓣 �벐�뒗 �씠�쑀�뒗 �빐�떦 �봽濡쒖젥�듃瑜� 遺덈윭�삤�뒗 url�� �떒 �븳踰덈쭔 �궗�슜�릺湲� �븣臾�.
-		Elements element = getElement(tempurl, "div#user-repositories-list");
-		showPrint(element,"li h3");
-		
-		//�뿬湲곗꽌�뒗 �엫�쓽濡� �씠�룞�븯�뒗 寃쎈줈瑜� Scanner濡� �엯�젰�쓣 諛쏅뒗�떎.
-		url = urlMake(url, input.next());
-		return url;
-	}
-
-
-	//elements 遺덈윭�삤湲�
-	public Elements getElement(String url, String condition) {
-		Document doc = connectJsoup(url);
-		Elements element = doc.select(condition);
+	protected Elements getRepository(String userId) {
+		String tempurl = repositoryUrlMake(userId);
+		// tempurl을 쓰는 이유는 해당 프로젝트를 불러오는 url은 단 한번만 사용되기 때문.
+		Elements element = selectQuery(tempurl, "div#user-repositories-list");
 		return element;
 	}
 
+	//�봽濡쒖젥�듃 �꽑�깮�솕硫� 遺덈윭�삤湲�
+	public String findProject(String url) {
+		Elements element = getElement(tempurl, "div#user-repositories-list");
+		showPrint(element,"li h3");
 
-	//議곌굔�쓣 諛쏆븘 異쒕젰�븯湲�.
-	//�뼢�썑 �씠 遺�遺꾩� UI濡� 蹂대궡湲곕줈 蹂�寃쏀븳�떎
-	private void showPrint(Elements element, String condition) {
+		url = urlAdd(url, input.next());
+		return url;
+		
+	}
+
+	protected String repositoryUrlMake(String userId) {
+		return urlAdd(urlAdd(gitUrl, userId),"?tab=repositories");
+	}
+	
+
+	// elements 불러오기
+	public Elements selectQuery(String url, String cssQuery) {
+		Document doc = connectJsoup(url);
+		Elements element = doc.select(cssQuery);
+		return element;
+	}
+	
+	// 조건을 받아 출력하기.
+	// 향후 이 부분은 UI로 보내기로 변경한다
+	protected void showPrint(Elements element, String condition) {
 		for (Element el : element.select(condition)) {
 			System.out.println(el.text());
 		}
 	}
 
-
-	private List<CrollVo> showFolderList(Elements element) {
+	public String folderFind(String url) {
+		Elements element = selectQuery(url,"table.files.js-navigation-container.js-active-navigation-container");
+		
 		List<CrollVo> result = new LinkedList<CrollVo>();
 		int number = 1;
 
@@ -77,6 +96,17 @@ public class Croll {
 			boolean isDirectory = isDirectory(selectType(el,"td.icon svg","aria-label"));
 
 			System.out.println(number + "\t"+ source +"\t" + isDirectory);
+
+		for (Element el : element.select("tr.js-navigation-item")) {
+			boolean isDirectory = false;
+			String source = el.select("td.content").text();
+			String type = el.select("td.icon").select("svg").attr("aria-label");
+
+			if (type.equals("directory")) {
+				isDirectory = true;
+			}
+
+			System.out.println(number + "\t" + source + "\t" + isDirectory);
 			result.add(new CrollVo(number++, source, isDirectory));
 		}
 
@@ -123,7 +153,6 @@ public class Croll {
 
 				String dire = url.split("https://github.com/jeongjiyoun/")[1] + "/";
 				String projectName = dire.split("/")[0];
-
 				url = "https://github.com/jeongjiyoun/" + projectName;
 				url += "/tree";
 				url += "/master/";
@@ -133,26 +162,38 @@ public class Croll {
 				folderFind(url);
 			} else {
 				String dire = url.split("https://github.com/jeongjiyoun/")[1];
-				SourceLink(dire,"master",crollResult.getSource());
+				System.out.println(dire);
+				SourceLink("jeongjiyoun", dire, "master", crollResult.getSource());
 			}
 		}
 		return url;
 	}
 
-	public void SourceLink(String directory, String branchName, String FileName) {
-		String url = "https://raw.githubusercontent.com/";
-		url += "jeongjiyoun";
-		url += "/" + directory;
-//		url += "/" + branchName;
-		url += "/" + FileName;
+	// url을 만들어주는 메서드
+	protected String urlAdd(String url, String value) {
+		url += "/" + value;
+		System.out.println(value);
+		return url;
+	}
+	
+	public void SourceLink(String userName, String directory, String branchName, String FileName) {
+		String url = "https://raw.githubusercontent.com";
+		// "https://raw.githubusercontent.com/
+		//jeongjiyoun/chieUniversity/master/java/com/university/chie/controller/AdminController.java";
+		url = urlAdd(url,userName);
+		url = urlAdd(url,directory);
+		url = urlAdd(url,branchName);
+		url = urlAdd(url,FileName);
+		System.out.println(url);
+		url = url.split("/tree/")[0] + "/" + url.split("/tree/")[1];
+		System.out.println("최종 : " + url);
 		source(url);
 	}
 
-
+	//소스 링크를 토대로 소스 긁어오기
 	private void source(String url) {
-		url = url.split("/tree/")[0] + "/" + url.split("/tree/")[1];
 		Document doc = connectJsoup(url);
-		//pre �깭洹몄쓽 �궡�슜�쓣 湲곸뼱�삩�떎
+		// pre 태그의 내용을 긁어온다
 		Elements element = doc.select("body");
 
 		System.out.println("============================================================");
@@ -162,16 +203,4 @@ public class Croll {
 		}
 
 	}
-
-	//留곹겕濡� �뙆�떛�븯�뿬 document濡� 媛��졇�삤�뒗 硫붿꽌�뱶
-	private Document connectJsoup(String url) {
-		Document doc = null;
-		try {
-			doc = Jsoup.connect(url).get();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return doc;
-	}
-
 }
