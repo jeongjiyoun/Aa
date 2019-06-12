@@ -15,19 +15,16 @@ import org.jsoup.select.Elements;
 
 public class Commit extends Croll {
 
-	private static Scanner input = new Scanner(System.in);
-	private final String gitUrl = "https://github.com";
-//	private boolean isOff = false;
-	private Map<String, String> linkMap = new HashMap<String, String>();
+	public Commit() {		
+	}
+	
+	public Commit(String userId) {		
+	}
 
-	@Override
 	public void startCrolling(String userId) {
-		linkMap.put("userId", userId);
-		linkMap.put("branch", "master");
 		getMyWholeCommit();
 		input.close();
 	}
-
 	
 	private void getCommitSource() {
 		//https://github.com/jeongjiyoun/chieUniversity/commit/2d9233a44818c38ec2a940e2cadca34be5484ae9
@@ -57,11 +54,11 @@ public class Commit extends Croll {
 						System.out.println(el.select("a.message.js-navigation-open").text());
 						System.out.println(el.select("span.commit-author.user-mention").text());
 						System.out.println(el.select("li.commit.commits-list-item.js-commits-list-item.table-list-item.js-navigation-item.js-details-container.Details.js-socket-channel.js-updatable-content.navigation-focus").attr("data-channel"));
-						if (commitDataList.get(dateCommit) == 0) {
-							commitDataList.put(dateCommit, 1);
-						} else {
-							commitDataList.put(dateCommit, commitDataList.get(dateCommit) + 1);
-						}
+//						if (commitDataList.get(dateCommit) == 0) {
+//							commitDataList.put(dateCommit, 1);
+//						} else {
+//							commitDataList.put(dateCommit, commitDataList.get(dateCommit) + 1);
+//						}
 					}
 				}
 			}
@@ -106,7 +103,7 @@ public class Commit extends Croll {
 
 	private List<String> getProjectList() {
 		List<String> projectList = new ArrayList<String>();
-		for (Element el : getRepository(linkMap.get("userId")).select("li h3")) {
+		for (Element el : getRepository().select("li h3")) {
 			System.out.println(el.text());
 			projectList.add(el.text());
 		}
