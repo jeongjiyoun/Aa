@@ -8,21 +8,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Scanner;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class Commit extends Croll {
+	protected Croll croll;
+	private boolean isOff = false;
+	
+	protected final String CSSQuery_commitList = "ol.commit-group.table-list.table-list-bordered li";
+	protected final String CSSQuery_commitName = "a.message.js-navigation-open";
+	protected final String CSSQuery_commitAuther = "span.commit-author.user-mention";
 
-	public Commit() {		
+	public Commit() {
 	}
 	
 	public Commit(String userId) {		
+		croll = new Croll(userId);
+		startCrolling();
 	}
 
-	public void startCrolling(String userId) {
-		getMyWholeCommit();
+	public void startCrolling() {
+		getMyWholeCommitCount();
 		input.close();
 	}
 	
@@ -38,37 +45,87 @@ public class Commit extends Croll {
 			branchList.addAll(getBranchList(project));
 		}
 	}
+	
+	//commit으로 가는 Url만들기
+	private String getUrl_commits() {
+		String url = gitUrl + "/" + linkMap.get("userId") + "/" + linkMap.get("repository") + "/commits/" + linkMap.get("branch");		
+		return url;
+	}
 
-	private Map<Date, Integer> getMyWholeCommit() {
+	//commit Count를 반환한다.
+	private Map<Date, Integer> getMyWholeCommitCount() {
 		List<String> projcetList = getProjectList();
-		Map<Date, Integer> commitDataList = new HashMap<Date, Integer>();
+		Map<Date, Integer> commitDataList = null;
+		
 		for (String project : projcetList) {
+			linkMap.put("repository", project); //linkMap에 적용
+			
 			for (String branch : getBranchList(project)) {
-				String url = urlMake(urlMake(urlMake(urlMake(gitUrl, linkMap.get("userId")), project), "commits"),
-						branch);
-				Elements elements = selectQuery(url,
-						"div.commits-listing.commits-listing-padded.js-navigation-container.js-active-navigation-container");
-				for (Element el : elements.select("div.table-list-cell")) {
-					if (!el.select("span.commit-author.user-mention").text().equals("")) {
-						Date dateCommit = convertDate(el.select("relative-time").text());
-						System.out.println(el.select("a.message.js-navigation-open").text());
-						System.out.println(el.select("span.commit-author.user-mention").text());
-						System.out.println(el.select("li.commit.commits-list-item.js-commits-list-item.table-list-item.js-navigation-item.js-details-container.Details.js-socket-channel.js-updatable-content.navigation-focus").attr("data-channel"));
-//						if (commitDataList.get(dateCommit) == 0) {
-//							commitDataList.put(dateCommit, 1);
-//						} else {
-//							commitDataList.put(dateCommit, commitDataList.get(dateCommit) + 1);
-//						}
-					}
-				}
+				linkMap.put("branch", branch); //branch에 적용
+				
+				String url = getUrl_commits(); //url 만들기
+				Elements elements = selectQuery(url, CSSQuery_commitList); //url을 토대로 elements 받아오기
+				commitDataList = makeCountCommit(elements);
+			}
+		}
+		return commitDataList;
+	}
+	
+	//일자별 커밋리스트 가져오는 역할
+	private Map<Date, Integer> getCommitList(Date commitDate) {
+		List<String> projcetList = getProjectList();
+		Map<Date, Integer> commitDataList = null;
+		
+		for (String project : projcetList) {
+			linkMap.put("repository", project); //linkMap에 적용
+			
+			for (String branch : getBranchList(project)) {
+				linkMap.put("branch", branch); //branch에 적용
+				
+				String url = getUrl_commits(); //url 만들기
+				Elements elements = selectQuery(url, CSSQuery_commitList); //url을 토대로 elements 받아오기
+				commitDataList = makeCountCommit(elements);
 			}
 		}
 		return commitDataList;
 	}
 
+	//Map(날짜와 갯수) 채워주는 역할
+	private Map<Date, Integer> makeCountCommit(Elements elements) {
+		Map<Date, Integer> commitDataList = new HashMap<Date, Integer>();
+		for (Element el : elements) {
+				Date dateCommit = convertDate(el.select("relative-time").attr("datetime"));
+				if (commitDataList.get(dateCommit) == null) {
+					commitDataList.put(dateCommit, 1);
+				} else {
+					commitDataList.put(dateCommit, commitDataList.get(dateCommit) + 1);
+				}
+		}
+		return commitDataList;
+	}
+
+	//그 날짜 커밋
+	private void findCommitByDay(Elements elements) {
+		for (Element el : elements) {
+			if (!el.select("span.commit-author.user-mention").text().equals("")) {
+				System.out.println(el.select("relative-time").text());
+				System.out.println(el.select(CSSQuery_commitName).text());
+				System.out.println(el.select(CSSQuery_commitAuther).text());
+				System.out.println(el.select("clipboard-copy").attr("value"));
+//				if (commitDataList.get(dateCommit) == null) {
+//					commitDataList.put(dateCommit, 1);
+//				} else {
+//					commitDataList.put(dateCommit, commitDataList.get(dateCommit) + 1);
+//				}
+			}
+			break;
+		}
+	}
+	
 	private Date convertDate(String date) {
-		date = date.replace(",", "");
-		SimpleDateFormat sf = new SimpleDateFormat("MMM d yyyy", Locale.US);
+		date = date.replace("T", "_");
+		date = date.replace("Z", "");
+		SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 		Date commitDate = null;
 		try {
 			commitDate = sf.parse(date);
@@ -82,7 +139,7 @@ public class Commit extends Croll {
 		List<String> projcetList = getProjectList();
 		for (String project : projcetList) {
 			for (String branch : getBranchList(project)) {
-				String url = urlMake(urlMake(urlMake(urlMake(gitUrl, linkMap.get("userId")), project), "commits"),
+				String url = urlAdd(urlAdd(urlAdd(urlAdd(gitUrl, linkMap.get("userId")), project), "commits"),
 						branch);
 				Elements elements = selectQuery(url,
 						"div.commits-listing.commits-listing-padded.js-navigation-container.js-active-navigation-container");
@@ -99,21 +156,10 @@ public class Commit extends Croll {
 		}
 	}
 
-//	private getCommitList
-
-	private List<String> getProjectList() {
-		List<String> projectList = new ArrayList<String>();
-		for (Element el : getRepository().select("li h3")) {
-			System.out.println(el.text());
-			projectList.add(el.text());
-		}
-		return projectList;
-	}
-
 	// branchList 긁어오기
 	private List<String> getBranchList(String project) {
 		List<String> branchList = new ArrayList<String>();
-		String url = urlMake(urlMake(urlMake(gitUrl, linkMap.get("userId")), project), "branches/all");
+		String url = urlAdd(urlAdd(urlAdd(gitUrl, linkMap.get("userId")), project), "branches/all");
 		Elements elements = selectQuery(url,
 				"li.Box-row.d-flex.js-branch-row.flex-items-center.Details.position-relative");
 		for (Element el : elements) {

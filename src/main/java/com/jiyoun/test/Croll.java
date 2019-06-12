@@ -1,6 +1,7 @@
 package com.jiyoun.test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,11 +14,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class Croll {
-
-	// 고쳐야 할 것
-	/*
-	 * 1. 폴더 상위폴더로 가기 2. 프로젝트 종류 안뜨는 거 수정.
-	 */
 
 	//기본적으로 사용하는 상수모음
 	protected final String gitUrl = "https://github.com";
@@ -45,8 +41,9 @@ public class Croll {
 	
 	// elements 확인
 	public Elements getElement(String url, String condition) {
-		Document doc = connectJsoup(url);
-		Elements element = doc.select(condition);
+		Elements element = null;
+			Document doc = connectJsoup(url); //Document로 긁어옴
+			element = doc.select(condition); //Elements 선택
 		return element;
 	}
 
@@ -54,7 +51,6 @@ public class Croll {
 	protected String url_FolderMake() {
 		String url = gitUrl + "/" + linkMap.get("userId") + "/" + linkMap.get("repository") + "/tree/" + linkMap.get("branch");
 		url += getLinks();
-		System.out.println(url);
 		return url;
 	}
 	
@@ -69,7 +65,20 @@ public class Croll {
 	protected Elements getRepository() {
 		// tempurl을 쓰는 이유는 해당 프로젝트를 불러오는 url은 단 한번만 사용되기 때문.
 		String tempurl = urlAdd(gitUrl, linkMap.get("userId")) + url_repository;
+		System.out.println(tempurl);
 		return selectQuery(tempurl, CSSQuery_repository);
+	}
+	
+	// repository를 String 배열로 반환해주세요.	
+	protected List<String> getProjectList() {
+		List<String> projectList = new ArrayList<String>();
+		Elements elements = getRepository();
+		
+		for (Element el : elements) {
+			System.out.println(el.text());
+			projectList.add(el.text());
+		}
+		return projectList;
 	}
 
 	// branch를 변경하는 경우
@@ -136,14 +145,10 @@ public class Croll {
 		String url = "";
 		for(int k = 0;;k++) {
 			String number = "link" + k;
-			System.out.println(number);
-			
 			if (linkMap.get(number) == null) {
 				linkMap.put("count", ""+ k);
 				break;
 			}
-
-			System.out.println(linkMap.get(number));
 			url += "/" + linkMap.get("link" + k);
 		}
 		return url;

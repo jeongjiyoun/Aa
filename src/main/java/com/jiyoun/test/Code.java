@@ -6,10 +6,11 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class Code extends Croll {
-	
+	protected Croll croll;
 	private boolean isOff = false;
 	
 	public Code(String userId) {
+		croll = new Croll(userId);
 		overallProcess();
 	}
 	
