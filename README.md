@@ -12,12 +12,11 @@ Before you parsing the page, you must check the site(which you want to parsing) 
 
 Here is the way to check whether the site permits parsing.
 
-1. you go to root page.
-example) When you want to parsing the github, you would go to page
+
+1. you go to root page. When you want to parsing the github, you would go to page
 https://github.com/
  
-2. add a robots.txt
-example) Add a 'robots.txt' after root page address.
+2. add a robots.txt Add a 'robots.txt' after root page address.
 https://github.com/robots.txt
  
 3. you can find a allowed and disallowed page
